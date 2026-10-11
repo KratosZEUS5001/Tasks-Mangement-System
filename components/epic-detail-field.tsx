@@ -25,7 +25,7 @@ export function EpicDetailField({
   isInteractive = false,
 }: EpicDetailFieldProps) {
   return (
-    <div className="flex flex-col gap-1.5 w-full">
+    <div className="flex flex-col gap-1.5 mt-5 w-full">
       <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
         {label}
       </span>

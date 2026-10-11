@@ -443,8 +443,8 @@ const saveAssignee = async (member: EpicProjectMember | null) => {
                 )}
               </div>
 
-              {/* <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
-                <EpicDetailField
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-5">
+                {/* <EpicDetailField
                   label="Assignee"
                   avatarUrl={epic.assignee?.name}
                   avatarFallback={getInitials(epic.assignee?.name)}
@@ -461,39 +461,21 @@ const saveAssignee = async (member: EpicProjectMember | null) => {
                   }
                   value={formatDate(epic.deadline)}
                   isInteractive={true}
-                />
-
-                <EpicDetailField
-                  label="Created By"
-                  avatarUrl={epic.created_by?.name}
-                  avatarFallback={getInitials(epic.created_by?.name)}
-                  value={epic.created_by?.name || "Unknown"}
-                />
-
-                <EpicDetailField
-                  label="Created At"
-                  icon={
-                    <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                  }
-                  value={formatDate(epic.created_at)}
-                />
-              </div> */}
-
+                /> */}
+                
               {/* Assignee */}
-                              <p className="mb-0 mt-5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+
+              <div className="relative min-w-0 rounded-xl bg-white p-0">
+                              <p className="text-[10px] mb-2 font-bold uppercase tracking-wider text-slate-400">
                   Assignee
                 </p>
-              <div className="relative min-w-0 rounded-xl border border-slate-100 bg-white p-1">
-
 
                 <button
                   type="button"
                   onClick={() => setAssigneeDropdownOpen((open) => !open)}
                   disabled={updatingFields.assignee_id || membersLoading}
                   aria-expanded={assigneeDropdownOpen}
-                  className="flex w-full items-center gap-3 rounded-lg text-left outline-none transition hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-blue-200 disabled:cursor-wait disabled:opacity-60"
+                  className="flex w-full items-center gap-3 rounded-lg text-left transition hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-blue-200 disabled:cursor-wait disabled:opacity-60"
                 >
                   {epic.assignee?.avatar_url ? (
                     <img
@@ -614,15 +596,15 @@ const saveAssignee = async (member: EpicProjectMember | null) => {
               </div>
               
               {/* Deadline */}
-                              <label
+
+              <div className="min-w-0 rounded-xl bg-white p-1">
+
+                                            <label
                   htmlFor="epic-deadline"
-                  className="mb-0 mt-5 block text-[10px] font-bold uppercase tracking-wider text-slate-400"
+                  className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-slate-400"
                 >
                   Deadline
                 </label>
-              <div className="min-w-0 rounded-xl border border-slate-100 bg-white p-1">
-
-              
                 <div className="flex items-center gap-2">
                   <input
                     id="epic-deadline"
@@ -655,6 +637,24 @@ const saveAssignee = async (member: EpicProjectMember | null) => {
                     <span className="shrink-0 text-xs text-slate-400">Saving…</span>
                   )}
                 </div>
+              </div>
+              
+                <EpicDetailField
+                  label="Created By"
+                  avatarUrl={epic.created_by?.name}
+                  avatarFallback={getInitials(epic.created_by?.name)}
+                  value={epic.created_by?.name || "Unknown"}
+                />
+
+                <EpicDetailField
+                  label="Created At"
+                  icon={
+                    <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  }
+                  value={formatDate(epic.created_at)}
+                />
               </div>
               {/* Tasks Empty State Section */}
               <EpicTasksSection projectId={projectId} epicId={epic.id} />
