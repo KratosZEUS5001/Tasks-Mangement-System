@@ -4,6 +4,9 @@ import React, { useEffect, useState } from "react";
 // import { Epic } from "../types"; // Adjust mapping to your actual paths
 import { EpicDetailField } from "./epic-detail-field";
 import { EpicTasksSection } from "./epic-tasks-section";
+import useUpdateEpic, {
+  type EpicProjectMember,
+} from "@/app/hooks/useUpdateEpic";
 
 interface EpicDetailsModalProps {
   isOpen: boolean;
@@ -11,11 +14,32 @@ interface EpicDetailsModalProps {
   projectId: string;
   onClose: () => void;
 }
+
+// interface EpicUser {
+//   sub: string;
+//   name: string;
+//   email: string;
+//   department: string | null;
+// }
+
+// interface Epic {
+//   id: string;
+//   project_id: string;
+//   title: string;
+//   description: string | null;
+//   created_at: string;
+//   deadline: string | null;
+//   epic_id: string;
+//   created_by: EpicUser;
+//   assignee: EpicUser;
+// }
+
 interface EpicUser {
   sub: string;
   name: string;
   email: string;
   department: string | null;
+  avatar_url?: string | null;
 }
 
 interface Epic {
@@ -27,7 +51,7 @@ interface Epic {
   deadline: string | null;
   epic_id: string;
   created_by: EpicUser;
-  assignee: EpicUser;
+  assignee: EpicUser | null;
 }
 
 export function EpicDetailsModal({
@@ -39,6 +63,25 @@ export function EpicDetailsModal({
   const [epic, setEpic] = useState<Epic | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
+
+  const [titleDraft, setTitleDraft] = useState("");
+const [descriptionDraft, setDescriptionDraft] = useState("");
+const [deadlineDraft, setDeadlineDraft] = useState("");
+const [assigneeDropdownOpen, setAssigneeDropdownOpen] = useState(false);
+
+const {
+  updateField,
+  updatingFields,
+  members,
+  membersLoading,
+  membersError,
+  errorToast,
+  clearErrorToast,
+} = useUpdateEpic({
+  projectId,
+  epicId: epicId ?? "",
+  isOpen,
+});
 
   useEffect(() => {
     if (!isOpen || !epicId || !projectId) return;
@@ -73,6 +116,143 @@ export function EpicDetailsModal({
     fetchEpicDetails();
   }, [isOpen, epicId, projectId]);
 
+
+  useEffect(() => {
+  if (!epic) return;
+
+  setTitleDraft(epic.title);
+  setDescriptionDraft(epic.description ?? "");
+  setDeadlineDraft(epic.deadline?.slice(0, 10) ?? "");
+  setAssigneeDropdownOpen(false);
+}, [epic?.id]);
+const saveTitle = async () => {
+  if (!epic || updatingFields.title) return;
+
+  const previousValue = epic.title;
+  const nextValue = titleDraft.trim();
+
+  if (!nextValue) {
+    setTitleDraft(previousValue);
+    return;
+  }
+
+  if (nextValue === previousValue) {
+    setTitleDraft(previousValue);
+    return;
+  }
+
+  await updateField(
+    "title",
+    nextValue,
+    () => {
+      setEpic((current) =>
+        current ? { ...current, title: nextValue } : current,
+      );
+      setTitleDraft(nextValue);
+    },
+    () => {
+      setEpic((current) =>
+        current ? { ...current, title: previousValue } : current,
+      );
+      setTitleDraft(previousValue);
+    },
+  );
+};
+
+const saveDescription = async () => {
+  if (!epic || updatingFields.description) return;
+
+  const previousValue = epic.description;
+  const draftValue = descriptionDraft;
+  const nextValue = draftValue.trim() === "" ? null : draftValue;
+
+  if (nextValue === previousValue) return;
+
+  await updateField(
+    "description",
+    nextValue,
+    () => {
+      setEpic((current) =>
+        current ? { ...current, description: nextValue } : current,
+      );
+      setDescriptionDraft(nextValue ?? "");
+    },
+    () => {
+      setEpic((current) =>
+        current ? { ...current, description: previousValue } : current,
+      );
+      setDescriptionDraft(previousValue ?? "");
+    },
+  );
+};
+
+const saveDeadline = async (selectedDate: string) => {
+  if (!epic || updatingFields.deadline) return;
+
+  const previousValue = epic.deadline?.slice(0, 10) ?? "";
+  const nextValue = selectedDate || null;
+
+  if (nextValue === previousValue) return;
+
+  await updateField(
+    "deadline",
+    nextValue,
+    () => {
+      setEpic((current) =>
+        current ? { ...current, deadline: nextValue } : current,
+      );
+      setDeadlineDraft(nextValue ?? "");
+    },
+    () => {
+      setEpic((current) =>
+        current ? { ...current, deadline: previousValue || null } : current,
+      );
+      setDeadlineDraft(previousValue);
+    },
+  );
+};
+
+const saveAssignee = async (member: EpicProjectMember | null) => {
+  if (!epic || updatingFields.assignee_id) return;
+
+  const previousAssignee = epic.assignee;
+  const previousId = previousAssignee?.sub ?? null;
+  const nextId = member?.user_id ?? null;
+
+  setAssigneeDropdownOpen(false);
+
+  if (nextId === previousId) return;
+
+  const nextAssignee: EpicUser | null = member
+    ? {
+        sub: member.user_id,
+        name: member.metadata?.name || member.email || "Unknown user",
+        email: member.email || "",
+        department: null,
+        avatar_url:
+          member.metadata?.avatar_url ||
+          member.metadata?.avatar ||
+          member.avatar_url ||
+          null,
+      }
+    : null;
+
+  await updateField(
+    "assignee_id",
+    nextId,
+    () => {
+      setEpic((current) =>
+        current ? { ...current, assignee: nextAssignee } : current,
+      );
+    },
+    () => {
+      setEpic((current) =>
+        current ? { ...current, assignee: previousAssignee } : current,
+      );
+    },
+  );
+};
+
   // Trap backgrounds and manage display states smoothly
   if (!isOpen) return null;
 
@@ -96,7 +276,30 @@ export function EpicDetailsModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-900/40 backdrop-blur-xs transition-opacity duration-200">
-      
+      {errorToast && (
+        <div
+          role="alert"
+          aria-live="assertive"
+          className="fixed left-1/2 top-5 z-[70] flex w-[calc(100%-32px)] max-w-md -translate-x-1/2 items-center gap-3 rounded-xl border border-red-100 bg-white px-4 py-3 shadow-xl"
+        >
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-50 text-red-600">
+            !
+          </span>
+
+          <p className="flex-1 text-sm font-medium text-slate-700">
+            {errorToast}
+          </p>
+
+          <button
+            type="button"
+            onClick={clearErrorToast}
+            aria-label="Dismiss error"
+            className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+          >
+            ×
+          </button>
+        </div>
+      )}
       <div className="absolute inset-0" onClick={onClose} />
       <div className="relative w-full sm:max-w-[672px] h-auto max-h-[92vh] sm:max-h-[90vh] bg-white rounded-t-[28px] sm:rounded-2xl shadow-xl border-t sm:border border-slate-100 flex flex-col overflow-hidden animate-in slide-in-from-bottom sm:zoom-in-95 duration-200">
         
@@ -167,9 +370,9 @@ export function EpicDetailsModal({
           )}
 
           {status === "success" && epic && (
-            <div className="flex flex-col gap-5">
+            <div className="flex flex-col gap-1.5">
               
-              <div className="w-full border border-slate-100 rounded-xl bg-slate-50/30 p-3">
+              {/* <div className="w-full border border-slate-100 rounded-xl bg-slate-50/30 p-3">
                 <h2 className="text-base font-bold text-slate-800 tracking-tight leading-snug">
                   {epic.title}
                 </h2>
@@ -181,9 +384,66 @@ export function EpicDetailsModal({
                     ? epic.description 
                     : "No description provided"}
                 </p>
+              </div> */}
+
+                <label
+                  htmlFor="epic-title"
+                  className="mb-0 mt-5 block text-[10px] font-bold uppercase tracking-wider text-slate-400"
+                >
+                  Title
+                </label>
+              <div className="w-full border border-slate-100 rounded-xl bg-slate-50/30 p-1">
+                
+
+                <div className="flex items-center gap-2">
+                  <input
+                    id="epic-title"
+                    value={titleDraft}
+                    onChange={(event) => setTitleDraft(event.target.value)}
+                    onBlur={() => void saveTitle()}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        event.preventDefault();
+                        event.currentTarget.blur();
+                      }
+                    }}
+                    disabled={updatingFields.title}
+                    maxLength={200}
+                    aria-label="Epic title"
+                    className="min-w-0 flex-1 rounded-md border border-transparent bg-transparent px-1 py-1 text-base font-bold leading-snug tracking-tight text-slate-800 outline-none transition focus:border-blue-200 focus:bg-white focus:ring-2 focus:ring-blue-100 disabled:opacity-60"
+                  />
+
+                  {updatingFields.title && (
+                    <span className="shrink-0 text-xs text-slate-400">Saving…</span>
+                  )}
+                </div>
+              </div>
+              <label
+                  htmlFor="epic-description"
+                  className="mb-0 mt-5 block text-[10px] font-bold uppercase tracking-wider text-slate-400"
+                >
+                  Description
+                </label>
+              <div className="w-full rounded-xl border border-slate-100 bg-white p-1">
+                
+
+                <textarea
+                  id="epic-description"
+                  value={descriptionDraft}
+                  onChange={(event) => setDescriptionDraft(event.target.value)}
+                  onBlur={() => void saveDescription()}
+                  disabled={updatingFields.description}
+                  placeholder="No description provided"
+                  rows={4}
+                  className="w-full resize-y rounded-md border border-transparent bg-transparent px-1 py-1 text-sm leading-relaxed text-slate-600 outline-none transition placeholder:text-slate-400 focus:border-blue-200 focus:bg-white focus:ring-2 focus:ring-blue-100 disabled:opacity-60"
+                />
+
+                {updatingFields.description && (
+                  <p className="mt-1 text-xs text-slate-400">Saving description…</p>
+                )}
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
+              {/* <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
                 <EpicDetailField
                   label="Assignee"
                   avatarUrl={epic.assignee?.name}
@@ -219,8 +479,183 @@ export function EpicDetailsModal({
                   }
                   value={formatDate(epic.created_at)}
                 />
-              </div>
+              </div> */}
 
+              {/* Assignee */}
+                              <p className="mb-0 mt-5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  Assignee
+                </p>
+              <div className="relative min-w-0 rounded-xl border border-slate-100 bg-white p-1">
+
+
+                <button
+                  type="button"
+                  onClick={() => setAssigneeDropdownOpen((open) => !open)}
+                  disabled={updatingFields.assignee_id || membersLoading}
+                  aria-expanded={assigneeDropdownOpen}
+                  className="flex w-full items-center gap-3 rounded-lg text-left outline-none transition hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-blue-200 disabled:cursor-wait disabled:opacity-60"
+                >
+                  {epic.assignee?.avatar_url ? (
+                    <img
+                      src={epic.assignee.avatar_url}
+                      alt=""
+                      className="h-9 w-9 shrink-0 rounded-full object-cover"
+                    />
+                  ) : (
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-50 text-xs font-bold text-blue-700">
+                      {getInitials(epic.assignee?.name)}
+                    </span>
+                  )}
+
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-semibold text-slate-700">
+                      {membersLoading
+                        ? "Loading members…"
+                        : epic.assignee?.name || "Unassigned"}
+                    </span>
+                      
+                    <span className="mt-0.5 block text-xs text-slate-400">
+                      {updatingFields.assignee_id
+                        ? "Updating…"
+                        : "Click to change"}
+                    </span>
+                  </span>
+                      
+                  <svg
+                    className="h-4 w-4 shrink-0 text-slate-400"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                    aria-hidden="true"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M5.22 7.22a.75.75 0 011.06 0L10 10.94l3.72-3.72a.75.75 0 111.06 1.06l-4.25 4.25a.75.75 0 01-1.06 0L5.22 8.28a.75.75 0 010-1.06z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </button>
+                      
+                {membersError && (
+                  <p className="mt-2 text-xs text-red-600">{membersError}</p>
+                )}
+
+                {assigneeDropdownOpen && (
+                  <div className="absolute left-3 right-3 top-full z-20 mt-2 max-h-56 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1 shadow-xl">
+                    <button
+                      type="button"
+                      onClick={() => void saveAssignee(null)}
+                      className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm text-slate-600 hover:bg-slate-50"
+                    >
+                      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-xs text-slate-500">
+                        —
+                      </span>
+                      <span className="flex-1">Unassigned</span>
+                      {!epic.assignee && (
+                        <span className="text-xs font-semibold text-blue-600">Current</span>
+                      )}
+                    </button>
+                    
+                    {members.map((member) => {
+                      const memberName =
+                        member.metadata?.name || member.email || "Unknown user";
+                      const avatarUrl =
+                        member.metadata?.avatar_url ||
+                        member.metadata?.avatar ||
+                        member.avatar_url;
+                      const isCurrentAssignee =
+                        epic.assignee?.sub === member.user_id;
+                    
+                      return (
+                        <button
+                          key={member.user_id}
+                          type="button"
+                          onClick={() => void saveAssignee(member)}
+                          className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left hover:bg-slate-50"
+                        >
+                          {avatarUrl ? (
+                            <img
+                              src={avatarUrl}
+                              alt=""
+                              className="h-8 w-8 shrink-0 rounded-full object-cover"
+                            />
+                          ) : (
+                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50 text-xs font-bold text-blue-700">
+                              {getInitials(memberName)}
+                            </span>
+                          )}
+
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-sm font-medium text-slate-700">
+                              {memberName}
+                            </span>
+                            {member.email && (
+                              <span className="block truncate text-xs text-slate-400">
+                                {member.email}
+                              </span>
+                            )}
+                          </span>
+                          
+                          {isCurrentAssignee && (
+                            <span className="text-xs font-semibold text-blue-600">
+                              Current
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+
+                    {!membersLoading && !membersError && members.length === 0 && (
+                      <p className="px-3 py-4 text-center text-xs text-slate-400">
+                        No project members found.
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+              
+              {/* Deadline */}
+                              <label
+                  htmlFor="epic-deadline"
+                  className="mb-0 mt-5 block text-[10px] font-bold uppercase tracking-wider text-slate-400"
+                >
+                  Deadline
+                </label>
+              <div className="min-w-0 rounded-xl border border-slate-100 bg-white p-1">
+
+              
+                <div className="flex items-center gap-2">
+                  <input
+                    id="epic-deadline"
+                    type="date"
+                    value={deadlineDraft}
+                    onChange={(event) => {
+                      const selectedDate = event.target.value;
+                      setDeadlineDraft(selectedDate);
+                      void saveDeadline(selectedDate);
+                    }}
+                    disabled={updatingFields.deadline}
+                    className="min-w-0 flex-1 rounded-md border border-slate-200 bg-white px-2 py-2 text-sm text-slate-700 outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-100 disabled:opacity-60"
+                  />
+
+                  {deadlineDraft && !updatingFields.deadline && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDeadlineDraft("");
+                        void saveDeadline("");
+                      }}
+                      className="shrink-0 text-xs font-medium text-slate-500 hover:text-red-600"
+                      aria-label="Clear deadline"
+                    >
+                      Clear
+                    </button>
+                  )}
+
+                  {updatingFields.deadline && (
+                    <span className="shrink-0 text-xs text-slate-400">Saving…</span>
+                  )}
+                </div>
+              </div>
               {/* Tasks Empty State Section */}
               <EpicTasksSection projectId={projectId} epicId={epic.id} />
 

@@ -35,13 +35,12 @@ export function EpicDetailField({
             <div className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-50 text-[10px] font-semibold text-blue-600 shrink-0 border border-blue-100">
               {avatarUrl ? (
                 getInitials(avatarUrl)
-                // <img src={avatarUrl} alt={value} className="w-full h-full rounded-full object-cover" />
               ) : (
                 avatarFallback
               )}
             </div>
           ) : null}
-          {icon && <span className="text-slate-400 shrink-0">{icon}</span>}
+          {/* {icon && <span className="text-slate-400 shrink-0">{icon}</span>} */}
           <span className="font-medium truncate">{value}</span>
         </div>
         {isInteractive && (
