@@ -30,6 +30,8 @@
   --color-slate-neutral-light: #C3C6D6;
   --color-semantic-success: #82F9BE;
   --color-semantic-error: #BA1A1A;
+  --color-semantic-error-bg: #BA1A1A1A;
+  
   --color-semantic-warning: #FFB300;
   --color-default-placeholder: #6B7280;
   --color-error-placeholder: #93000A;

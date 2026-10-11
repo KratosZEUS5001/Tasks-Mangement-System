@@ -216,3 +216,122 @@ export async function POST(
     );
   }
 }
+
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  try {
+    const { id: projectId } = await params;
+    const { searchParams } = new URL(request.url);
+    const status = searchParams.get("status");
+
+    const allowedStatuses = [
+      "TO_DO",
+      "IN_PROGRESS",
+      "BLOCKED",
+      "IN_REVIEW",
+      "READY_FOR_QA",
+      "REOPENED",
+      "READY_FOR_PRODUCTION",
+      "DONE",
+    ];
+
+    if (!projectId || !status || !allowedStatuses.includes(status)) {
+      return NextResponse.json(
+        { error: "A valid project ID and task status are required." },
+        { status: 400 },
+      );
+    }
+
+    const cookieStore = await cookies();
+
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_BASE_URL!,
+      process.env.NEXT_PUBLIC_SECRET_KEYS!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll();
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              cookieStore.set(name, value, {
+                ...options,
+                httpOnly: true,
+                secure: process.env.NODE_ENV === "production",
+                sameSite: "lax",
+              });
+            });
+          },
+        },
+      },
+    );
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json(
+        { error: "Unauthorized access." },
+        { status: 401 },
+      );
+    }
+
+    const sessionToken = (
+      await supabase.auth.getSession()
+    ).data.session?.access_token;
+
+    if (!sessionToken) {
+      return NextResponse.json(
+        { error: "No active session." },
+        { status: 401 },
+      );
+    }
+
+    const query = new URLSearchParams({
+      select: "*",
+      project_id: `eq.${projectId}`,
+      status: `eq.${status}`,
+    });
+
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_BASE_URL}/rest/v1/project_tasks?${query.toString()}`,
+      {
+        method: "GET",
+        headers: {
+          apikey: process.env.NEXT_PUBLIC_SECRET_KEYS!,
+          Authorization: `Bearer ${sessionToken}`,
+          "Content-Type": "application/json",
+        },
+        cache: "no-store",
+      },
+    );
+
+    const data = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      console.error("Supabase GET project tasks error:", data);
+
+      return NextResponse.json(
+        {
+          error:
+            data?.message ||
+            data?.details ||
+            "Failed to fetch project tasks.",
+        },
+        { status: response.status },
+      );
+    }
+
+    return NextResponse.json(Array.isArray(data) ? data : []);
+  } catch (error) {
+    console.error("Project tasks GET proxy error:", error);
+
+    return NextResponse.json(
+      { error: "Failed to fetch project tasks." },
+      { status: 500 },
+    );
+  }
+}
