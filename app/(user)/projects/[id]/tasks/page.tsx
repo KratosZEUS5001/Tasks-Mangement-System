@@ -50,7 +50,7 @@ export default function ProjectTasksPage() {
 
   const [isAddTaskOpen, setIsAddTaskOpen] = useState(false);
 
-  const { columns, retryColumn, refreshAll } = useProjectTasks(projectId);
+  const { columns, retryColumn, refreshAll, moveTask, movingTaskIds, } = useProjectTasks(projectId);
 
   return (
     <section>
@@ -58,6 +58,8 @@ export default function ProjectTasksPage() {
         columns={columns}
         onRetry={retryColumn}
         onAddTask={() => setIsAddTaskOpen(true)}
+        onMoveTask={moveTask}
+        movingTaskIds={movingTaskIds}
       />
 
       <EmptyProjectTasksMobileLayout
