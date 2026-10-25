@@ -173,6 +173,7 @@
   import useProjectTasks, {
     TASK_COLUMNS,
     type TaskStatus,
+    type ProjectTask,
   } from "@/app/hooks/useProjectTasks";
 
   import {
@@ -192,6 +193,7 @@
     columns: ReturnType<typeof useProjectTasks>["columns"];
     onRetry: (status: TaskStatus) => void;
     onAddTask: () => void;
+    onTaskClick: (task: ProjectTask) => void;
     onMoveTask: (options: {
       taskId: string;
       targetStatus: TaskStatus;
@@ -206,6 +208,7 @@
     onAddTask,
     onMoveTask,
     movingTaskIds,
+    onTaskClick,
   }: Props) {
     const [moveError, setMoveError] = useState("");
 
@@ -313,6 +316,7 @@
                     onRetry={onRetry}
                     onAddTask={onAddTask}
                     movingTaskIds={movingTaskIds}
+                    onTaskClick={onTaskClick}
                   />
                 );
               })}

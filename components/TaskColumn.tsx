@@ -216,11 +216,13 @@ interface TaskColumnProps {
   onRetry: (status: TaskStatus) => void;
   onAddTask: () => void;
   movingTaskIds: Set<string>;
+  onTaskClick: (task: ProjectTask) => void;
 }
 
 interface DraggableTaskCardProps {
   task: ProjectTask;
   disabled: boolean;
+  onTaskClick: (task: ProjectTask) => void;
 }
 
 // function DraggableTaskCard({
@@ -261,9 +263,106 @@ interface DraggableTaskCardProps {
 // }
 
 
+// function DraggableTaskCard({
+//   task,
+//   disabled,
+//   onTaskClick,
+// }: DraggableTaskCardProps) {
+//   const {
+//     attributes,
+//     listeners,
+//     setNodeRef,
+//     transform,
+//     isDragging,
+//   } = useDraggable({
+//     id: task.id,
+//     disabled,
+//   });
+
+//   return (
+//     <div
+//       ref={setNodeRef}
+//       style={{
+//         transform: CSS.Transform.toString(transform),
+//         opacity: isDragging ? 0.4 : 1,
+//         position: "relative",
+//         zIndex: isDragging ? 1 : "auto",
+//       }}
+//       className={`touch-pan-y ${
+//         disabled ? "cursor-wait" : "cursor-pointer"
+//       }`}
+//     >
+//       <div
+//         {...attributes}
+//         {...listeners}
+//         aria-label={`Drag task: ${task.title}`}
+//         className="cursor-grab active:cursor-grabbing"
+//       >
+//         <ProjectTaskCard
+//           task={task}
+//           onClick={() => onTaskClick(task)}
+//         />
+//       </div>
+//     </div>
+//   );
+// }
+
+
+
+// function DraggableTaskCard({
+//   task,
+//   disabled,
+//   onTaskClick,
+// }: DraggableTaskCardProps & {
+//   onTaskClick: (task: ProjectTask) => void;
+// }) {
+//   const {
+//     attributes,
+//     listeners,
+//     setNodeRef,
+//     transform,
+//     isDragging,
+//   } = useDraggable({
+//     id: task.id,
+//     disabled,
+//   });
+
+//   return (
+//     <div
+//       ref={setNodeRef}
+//       style={{
+//         transform: CSS.Transform.toString(transform),
+//         opacity: isDragging ? 0.4 : 1,
+//         position: "relative",
+//         zIndex: isDragging ? 1 : "auto",
+//       }}
+//       className={disabled ? "cursor-wait" : "cursor-grab"}
+//     >
+//       <ProjectTaskCard
+//         task={task}
+//         onClick={() => {
+//           if (!disabled && !isDragging) {
+//             onTaskClick(task);
+//           }
+//         }}
+//       />
+
+//       <div
+//         {...attributes}
+//         {...listeners}
+//         aria-label={`Drag task: ${task.title}`}
+//         className="absolute inset-0 touch-pan-y"
+//         style={{ pointerEvents: "none" }}
+//       />
+//     </div>
+//   );
+// }
+
+
 function DraggableTaskCard({
   task,
   disabled,
+  onTaskClick,
 }: DraggableTaskCardProps) {
   const {
     attributes,
@@ -285,11 +384,7 @@ function DraggableTaskCard({
         position: "relative",
         zIndex: isDragging ? 1 : "auto",
       }}
-      className={`touch-none ${
-        disabled
-          ? "cursor-wait"
-          : "cursor-grab active:cursor-grabbing"
-      }`}
+      className="touch-pan-y"
     >
       <div
         {...attributes}
@@ -297,11 +392,19 @@ function DraggableTaskCard({
         aria-label={`Drag task: ${task.title}`}
         className="cursor-grab active:cursor-grabbing"
       >
-        <ProjectTaskCard task={task} />
+        <ProjectTaskCard
+          task={task}
+          onClick={() => {
+            if (!disabled && !isDragging) {
+              onTaskClick(task);
+            }
+          }}
+        />
       </div>
     </div>
   );
 }
+
 
 export default function TaskColumn({
   status,
@@ -314,6 +417,7 @@ export default function TaskColumn({
   onRetry,
   onAddTask,
   movingTaskIds,
+  onTaskClick,
 }: TaskColumnProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: status,
@@ -418,6 +522,7 @@ export default function TaskColumn({
               key={task.id}
               task={task}
               disabled={movingTaskIds.has(task.id)}
+              onTaskClick={onTaskClick}
             />
           ))}
       </div>

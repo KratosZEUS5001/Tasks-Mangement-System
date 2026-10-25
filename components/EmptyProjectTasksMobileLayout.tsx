@@ -81,12 +81,14 @@ interface Props {
   columns: Record<TaskStatus, ColumnState>;
   onRetry: (status: TaskStatus) => void;
   onAddTask: () => void;
+  onTaskClick: (task: ProjectTask) => void;
 }
 
 export default function EmptyProjectTasksMobileLayout({
   columns,
   onRetry,
   onAddTask,
+  onTaskClick,
 }: Props) {
   const isLoading = TASK_COLUMNS.some(
     ({ status }) => columns[status].isLoading,
@@ -187,7 +189,7 @@ export default function EmptyProjectTasksMobileLayout({
         )}
 
         {tasks.map((task) => (
-          <ProjectTaskCard key={task.id} task={task} mobile />
+          <ProjectTaskCard key={task.id} task={task} mobile onClick={() => onTaskClick(task)}/>
         ))}
       </div>
     </div>
